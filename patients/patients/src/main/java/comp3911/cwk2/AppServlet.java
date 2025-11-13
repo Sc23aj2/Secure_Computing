@@ -63,7 +63,16 @@ public class AppServlet extends HttpServlet {
   @Override
   protected void doGet(HttpServletRequest request, HttpServletResponse response)
    throws ServletException, IOException {
+
+    // Generate and store CSRF Token
+    String csrfToken = java.uitl.UUID.randomUUID().toString();
+    request.getSession().setAttribute("csrfToken", csrfToken);
+
     try {
+      // Send CSRF to HTML form
+      Map<String, Object> model = new HashMap<>();
+      model.put("csrfToken", csrfToken);
+
       Template template = fm.getTemplate("login.html");
       template.process(null, response.getWriter());
       response.setContentType("text/html");
@@ -77,6 +86,11 @@ public class AppServlet extends HttpServlet {
   @Override
   protected void doPost(HttpServletRequest request, HttpServletResponse response)
    throws ServletException, IOException {
+
+    // Validate CSRF token
+    String sessionToken = (String) request.getSession().getAttribute("csrfToken")
+    String formToken = request.getParameter("csrfToken")
+    
      // Get form parameters
     String username = request.getParameter("username");
     String password = request.getParameter("password");
