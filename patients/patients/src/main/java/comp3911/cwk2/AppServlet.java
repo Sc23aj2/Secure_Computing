@@ -16,6 +16,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.Cookie;
 
 import freemarker.template.Configuration;
 import freemarker.template.Template;
@@ -64,17 +65,36 @@ public class AppServlet extends HttpServlet {
   protected void doGet(HttpServletRequest request, HttpServletResponse response)
    throws ServletException, IOException {
 
-    // Generate and store CSRF Token
-    String csrfToken = java.uitl.UUID.randomUUID().toString();
-    request.getSession().setAttribute("csrfToken", csrfToken);
+    // Generate and store token - CSRF Protection
+    String csrfToken = null;
+    if (request.getCookies() != null) {
+        for (Cookie c : request.getCookies()) {
+            if ("csrfToken".equals(c.getName())) {
+                csrfToken = c.getValue();
+                break;
+            }
+        }
+    }
+
+    if (csrfToken == null) {
+        csrfToken = java.util.UUID.randomUUID().toString();
+
+        Cookie csrfCookie = new Cookie("csrfToken", csrfToken);
+        csrfCookie.setHttpOnly(true);
+        csrfCookie.setPath("/");
+        response.addCookie(csrfCookie);
+    }
 
     try {
-      // Send CSRF to HTML form
+      // Prepare token for template - CSRF Protection
       Map<String, Object> model = new HashMap<>();
       model.put("csrfToken", csrfToken);
 
       Template template = fm.getTemplate("login.html");
-      template.process(null, response.getWriter());
+
+      // pass token into template - CSRF Protection
+      template.process(model, response.getWriter());
+
       response.setContentType("text/html");
       response.setStatus(HttpServletResponse.SC_OK);
     }
@@ -87,10 +107,26 @@ public class AppServlet extends HttpServlet {
   protected void doPost(HttpServletRequest request, HttpServletResponse response)
    throws ServletException, IOException {
 
-    // Validate CSRF token
-    String sessionToken = (String) request.getSession().getAttribute("csrfToken")
-    String formToken = request.getParameter("csrfToken")
-    
+    // Get token from form - CSRF Protection
+    String formToken = request.getParameter("csrfToken");
+
+    // Get token from cookie - CSRF Protection
+    String cookieToken = null;
+    if (request.getCookies() != null) {
+        for (Cookie c : request.getCookies()) {
+            if ("csrfToken".equals(c.getName())) {
+                cookieToken = c.getValue();
+                break;
+            }
+        }
+    }
+
+    // Validate token - CSRF Protection
+    if (cookieToken == null || !cookieToken.equals(formToken)) {
+        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid CSRF token");
+        return;
+    }
+
      // Get form parameters
     String username = request.getParameter("username");
     String password = request.getParameter("password");
